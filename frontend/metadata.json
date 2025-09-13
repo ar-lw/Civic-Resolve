@@ -1,0 +1,5 @@
+{
+  "name": "Civic Issue Reporting Portal",
+  "description": "A platform for citizens to report civic issues like broken street lights, damaged roads, and garbage problems to the municipality and track the resolution status.",
+  "requestFramePermissions": []
+}
