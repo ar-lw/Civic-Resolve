@@ -82,7 +82,7 @@ const AdminDashboardPage: React.FC = () => {
                                             {complaint.status}
                                         </span>
                                     </td>
-                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(complaint.submittedDate).toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(complaint.submittedDate).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <Link to={`/admin/complaint/${complaint.id}`} className="text-primary-600 hover:text-primary-900">View/Edit</Link>
                                     </td>

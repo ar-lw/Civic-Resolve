@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 const AdminLoginPage: React.FC = () => {
-    const [email, setEmail] = useState('admin@cityportal.gov');
-    const [password, setPassword] = useState('adminpass');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {

@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
-    const [email, setEmail] = useState('ravi@example.com');
-    const [password, setPassword] = useState('password123');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -83,7 +83,7 @@ const LoginPage: React.FC = () => {
                             Sign up
                         </Link>
                     </p>
-                     <p className="mt-2">
+                    <p className="mt-2">
                         Are you an administrator?{' '}
                         <Link to="/admin/login" className="font-medium text-primary-600 hover:text-primary-500">
                             Admin Login

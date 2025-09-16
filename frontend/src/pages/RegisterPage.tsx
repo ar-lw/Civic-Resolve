@@ -3,19 +3,17 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const RegisterPage: React.FC = () => {
-    const [name, setName] = useState('Ravi Kumar');
-    const [email, setEmail] = useState('ravi@example.com');
-    const [password, setPassword] = useState('password123');
-    const [confirmPassword, setConfirmPassword] = useState('password123');
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const navigate = useNavigate();
-
     const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
         alert("Passwords do not match!");
         return;
     }
-
     try {
         // Send the form data to our backend API
         const response = await fetch('http://localhost:5000/api/users/register', {
@@ -25,18 +23,14 @@ const RegisterPage: React.FC = () => {
             },
             body: JSON.stringify({ name, email, password }),
         });
-
         const data = await response.json();
-
         // If the server sends back an error, show it
         if (!response.ok) {
             throw new Error(data.message);
         }
-
         // If successful, tell the user and send them to the login page
         alert('Registration successful! Please log in.');
         navigate('/login');
-
     } catch (error: any) {
         alert(error.message);
     }

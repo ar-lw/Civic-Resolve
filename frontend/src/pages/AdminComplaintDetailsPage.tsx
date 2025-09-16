@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Complaint, ComplaintStatus, AdminReply } from '../types';
 
 const getStatusColor = (status: ComplaintStatus) => {
@@ -14,26 +14,26 @@ const getStatusColor = (status: ComplaintStatus) => {
 
 const AdminComplaintDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const [complaint, setComplaint] = useState<Complaint | null>(null);
     const [newStatus, setNewStatus] = useState<ComplaintStatus>(ComplaintStatus.Pending);
     const [replyMessage, setReplyMessage] = useState('');
 
+    const fetchComplaint = async () => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`http://localhost:5000/api/admin/complaints/${id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch complaint details.');
+            const data: Complaint = await response.json();
+            setComplaint(data);
+            setNewStatus(data.status);
+        } catch (error: any) {
+            alert(error.message);
+        }
+    };
+
     useEffect(() => {
-        const fetchComplaint = async () => {
-            const token = localStorage.getItem('token');
-            try {
-                const response = await fetch(`http://localhost:5000/api/admin/complaints/${id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!response.ok) throw new Error('Failed to fetch complaint details.');
-                const data: Complaint = await response.json();
-                setComplaint(data);
-                setNewStatus(data.status);
-            } catch (error: any) {
-                alert(error.message);
-            }
-        };
         fetchComplaint();
     }, [id]);
 
@@ -79,13 +79,12 @@ const AdminComplaintDetailsPage: React.FC = () => {
             }
             alert('Reply added successfully!');
             setReplyMessage('');
-            window.location.reload(); // Simple way to refresh data
+            fetchComplaint(); // Re-fetch the complaint to show the new reply
         } catch (error: any) {
             alert(error.message);
         }
     };
 
-    // This is the crucial fix: Show a loading message until the data is fetched
     if (!complaint) {
         return <div className="text-center py-20">Loading complaint details...</div>;
     }
@@ -166,7 +165,37 @@ const AdminComplaintDetailsPage: React.FC = () => {
                     <h2 className="text-xl font-bold text-gray-800 mb-4">Update History</h2>
                     {complaint.replies && complaint.replies.length > 0 ? (
                         <div className="flow-root">
-                            {/* ... Your existing JSX for displaying replies ... */}
+                            <ul role="list" className="-mb-8">
+                                {complaint.replies.map((reply, replyIdx) => (
+                                    <li key={reply.id}>
+                                        <div className="relative pb-8">
+                                            {replyIdx !== complaint.replies.length - 1 ? (
+                                                <span className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                                            ) : null}
+                                            <div className="relative flex space-x-3">
+                                                <div>
+                                                    <span className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center ring-8 ring-white">
+                                                        <svg className="h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </span>
+                                                </div>
+                                                <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                                    <div>
+                                                        <p className="text-sm text-gray-500">
+                                                            Reply from <span className="font-medium text-gray-900">{reply.author_name}</span>
+                                                        </p>
+                                                        <p className="mt-1 text-sm text-gray-700">{reply.message}</p>
+                                                    </div>
+                                                    <div className="whitespace-nowrap text-right text-sm text-gray-500">
+                                                        <time dateTime={reply.created_at}>{new Date(reply.created_at).toLocaleDateString()}</time>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     ) : (
                         <p className="text-sm text-gray-500">No replies yet.</p>

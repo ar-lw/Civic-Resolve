@@ -70,7 +70,6 @@ app.post('/api/complaints', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Server error during complaint submission.' });
     }
 });
-
 // Get All Complaints for a Logged-In User (Protected)
 app.get('/api/complaints', authMiddleware, async (req, res) => {
     try {
@@ -82,10 +81,25 @@ app.get('/api/complaints', authMiddleware, async (req, res) => {
             FROM complaints 
             JOIN users ON complaints.user_id = users.id 
             WHERE complaints.user_id = ? 
-            ORDER BY submitted_date DESC
-        `;
-        const [complaints] = await db.query(sql, [userId]);
-        res.json(complaints);
+            ORDER BY submitted_date DESC`;
+        const [complaintsFromDB] = await db.query(sql, [userId]);
+        // Map database fields to frontend fields and format the date
+        const complaintsForFrontend = complaintsFromDB.map(complaint => {
+            return {
+                id: complaint.id,
+                userId: complaint.user_id,
+                userName: complaint.userName,
+                title: complaint.title,
+                description: complaint.description,
+                category: complaint.category,
+                location: complaint.location,
+                imageUrl: complaint.image_url,
+                status: complaint.status,
+                submittedDate: new Date(complaint.submitted_date).toISOString(),
+                replies: complaint.replies || [] // Default to empty array
+            };
+        });
+        res.json(complaintsForFrontend);
     } catch (error) {
         console.error('Error fetching complaints:', error);
         res.status(500).json({ message: 'Server error while fetching complaints.' });
@@ -97,13 +111,30 @@ app.get('/api/complaints/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const sql = 'SELECT * FROM complaints WHERE id = ? AND user_id = ?';
-        const [complaints] = await db.query(sql, [id, userId]);
-
+        // First, get the main complaint details and verify ownership
+        const complaintSql = 'SELECT * FROM complaints WHERE id = ? AND user_id = ?';
+        const [complaints] = await db.query(complaintSql, [id, userId]);
         if (complaints.length === 0) {
             return res.status(404).json({ message: 'Complaint not found or you do not have permission to view it.' });
         }
-        res.json(complaints[0]);
+        const complaintFromDB = complaints[0];
+        // Second, get all replies for that complaint
+        const repliesSql = 'SELECT * FROM replies WHERE complaint_id = ? ORDER BY created_at ASC';
+        const [replies] = await db.query(repliesSql, [id]);
+        // Format the final object for the frontend
+        const complaintForFrontend = {
+            id: complaintFromDB.id,
+            userId: complaintFromDB.user_id,
+            title: complaintFromDB.title,
+            description: complaintFromDB.description,
+            category: complaintFromDB.category,
+            location: complaintFromDB.location,
+            imageUrl: complaintFromDB.image_url,
+            status: complaintFromDB.status,
+            submittedDate: new Date(complaintFromDB.submitted_date).toISOString(),
+            replies: replies // Attach the fetched replies
+        };
+        res.json(complaintForFrontend);
     } catch (error) {
         console.error('Error fetching single complaint:', error);
         res.status(500).json({ message: 'Server error while fetching complaint.' });
@@ -127,14 +158,32 @@ app.post('/api/admin/login', async (req, res) => {
     }
 });
 
+// Replace the existing '/api/admin/complaints' GET route with this:
+
 app.get('/api/admin/complaints', adminAuthMiddleware, async (req, res) => {
     try {
         const sql = `
             SELECT complaints.*, users.name as userName 
             FROM complaints JOIN users ON complaints.user_id = users.id 
             ORDER BY submitted_date DESC`;
-        const [complaints] = await db.query(sql);
-        res.json(complaints);
+        const [complaintsFromDB] = await db.query(sql);
+        // Map database fields to frontend fields and format the date
+        const complaintsForFrontend = complaintsFromDB.map(complaint => {
+            return {
+                id: complaint.id,
+                userId: complaint.user_id,
+                userName: complaint.userName,
+                title: complaint.title,
+                description: complaint.description,
+                category: complaint.category,
+                location: complaint.location,
+                imageUrl: complaint.image_url,
+                status: complaint.status,
+                submittedDate: new Date(complaint.submitted_date).toISOString(),
+                replies: complaint.replies || []
+            };
+        });
+        res.json(complaintsForFrontend);
     } catch (error) {
         console.error('Error fetching all complaints:', error);
         res.status(500).json({ message: 'Server error while fetching complaints.' });
@@ -165,16 +214,12 @@ app.post('/api/admin/complaints/:id/reply', adminAuthMiddleware, async (req, res
         const adminId = req.user.id;
         const adminName = req.user.name;
         const { message } = req.body;
-
         if (!message) {
             return res.status(400).json({ message: 'Reply message cannot be empty.' });
         }
-
         const sql = 'INSERT INTO replies (complaint_id, admin_id, author_name, message) VALUES (?, ?, ?, ?)';
         const [result] = await db.query(sql, [complaintId, adminId, adminName, message]);
-
         res.status(201).json({ message: 'Reply added successfully!', replyId: result.insertId });
-
     } catch (error) {
         console.error('Error adding reply:', error);
         res.status(500).json({ message: 'Server error while adding reply.' });
@@ -183,21 +228,40 @@ app.post('/api/admin/complaints/:id/reply', adminAuthMiddleware, async (req, res
 // Add this inside the ## ADMIN ROUTES ## section of server.js
 
 // ## Get a Single Complaint by ID (Admin Only)
+// Replace the existing '/api/admin/complaints/:id' GET route with this:
+
 app.get('/api/admin/complaints/:id', adminAuthMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
-        const sql = `
+        
+        // First, get the main complaint details
+        const complaintSql = `
             SELECT complaints.*, users.name as userName 
-            FROM complaints 
-            JOIN users ON complaints.user_id = users.id 
-            WHERE complaints.id = ?
-        `;
-        const [complaints] = await db.query(sql, [id]);
-
+            FROM complaints JOIN users ON complaints.user_id = users.id 
+            WHERE complaints.id = ?`;
+        const [complaints] = await db.query(complaintSql, [id]);
         if (complaints.length === 0) {
             return res.status(404).json({ message: 'Complaint not found.' });
         }
-        res.json(complaints[0]);
+        const complaintFromDB = complaints[0];
+        // Second, get all replies for that complaint
+        const repliesSql = 'SELECT * FROM replies WHERE complaint_id = ? ORDER BY created_at ASC';
+        const [replies] = await db.query(repliesSql, [id]);
+        // Format the final object for the frontend
+        const complaintForFrontend = {
+            id: complaintFromDB.id,
+            userId: complaintFromDB.user_id,
+            userName: complaintFromDB.userName,
+            title: complaintFromDB.title,
+            description: complaintFromDB.description,
+            category: complaintFromDB.category,
+            location: complaintFromDB.location,
+            imageUrl: complaintFromDB.image_url,
+            status: complaintFromDB.status,
+            submittedDate: new Date(complaintFromDB.submitted_date).toISOString(),
+            replies: replies
+        };
+        res.json(complaintForFrontend);
     } catch (error) {
         console.error('Error fetching single complaint:', error);
         res.status(500).json({ message: 'Server error while fetching complaint.' });
@@ -207,5 +271,5 @@ app.get('/api/admin/complaints/:id', adminAuthMiddleware, async (req, res) => {
 // --- 5. SERVER INITIALIZATION ---
 const PORT = 5000;
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
