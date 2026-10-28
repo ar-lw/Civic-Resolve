@@ -9,7 +9,7 @@ A full-stack civic issue reporting and management portal built for citizens and 
 ### 👤 Citizen Portal
 * **User Authentication:** Secure registration and login using JWT and Bcrypt password hashing.
 * **Submit Complaints:** Report civic issues with title, category, location, and detailed description.
-* **Track Status:** Monitor complaint progress (`Pending`, `In Progress`, `Resolved`, `Rejected`).
+* **Track Status:** Monitor complaint progress (Pending, In Progress, Resolved, Rejected) and stay updated on the actions taken by municipal administrators.
 * **View Replies:** See official updates and responses from municipal admins.
 
 ### 🛡️ Admin Dashboard
